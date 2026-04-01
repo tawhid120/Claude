@@ -9,6 +9,8 @@ const MAX_TOKENS = 2048
 // Per-chat conversation history (kept in memory)
 const histories = new Map<number, Anthropic.MessageParam[]>()
 
+const MAX_HISTORY_MESSAGES = 40 // 20 exchanges (user + assistant pairs)
+
 const SYSTEM_PROMPT = `You are a helpful personal assistant integrated into Telegram.
 You can answer questions, help with tasks, write code, and search the web for up-to-date information.
 When web search results are provided, use them to give accurate, current answers and cite sources.
@@ -53,7 +55,8 @@ async function buildSearchContext(userMessage: string): Promise<string> {
 function needsWebSearch(message: string): boolean {
   const triggers = [
     /সংবাদ|খবর|আজকের|বর্তমান|এখন|লেটেস্ট/i, // Bangla
-    /news|today|current|latest|price|weather|stock|score|update|২০২/i,
+    /news|today|current|latest|price|weather|stock|score|update/i,
+    /২০২[০-৯]/,  // Bangla year patterns like ২০২৪, ২০২৫
     /\?(.*)?$/, // ends with question
     /who is|what is|when did|where is|how to|কে|কোথায়|কখন|কীভাবে/i,
   ]
@@ -81,9 +84,9 @@ export async function chat(chatId: number, userMessage: string): Promise<string>
 
   history.push({ role: 'user', content })
 
-  // Keep history manageable (last 20 exchanges = 40 messages)
-  if (history.length > 40) {
-    history.splice(0, history.length - 40)
+  // Keep history manageable (last MAX_HISTORY_MESSAGES messages)
+  if (history.length > MAX_HISTORY_MESSAGES) {
+    history.splice(0, history.length - MAX_HISTORY_MESSAGES)
   }
 
   const response = await client.messages.create({

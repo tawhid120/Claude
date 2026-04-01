@@ -16,14 +16,15 @@ if (!ANTHROPIC_KEY) {
   process.exit(1)
 }
 
-// ── Create bot ───────────────────────────────────────────────────────────────
+// Telegram's max message length; we use a slightly smaller value to be safe
+const TELEGRAM_MESSAGE_LIMIT = 4000
 const bot = new Telegraf(BOT_TOKEN)
 
 // ── Helper: show typing indicator then send reply ────────────────────────────
 async function sendReply(ctx: Context, reply: string): Promise<void> {
   await ctx.sendChatAction('typing')
   // Telegram message limit is 4096 chars — split if needed
-  const chunks = splitMessage(reply, 4000)
+  const chunks = splitMessage(reply, TELEGRAM_MESSAGE_LIMIT)
   for (const chunk of chunks) {
     await ctx.reply(chunk, { parse_mode: 'Markdown' }).catch(() =>
       // Fallback without Markdown if parsing fails
